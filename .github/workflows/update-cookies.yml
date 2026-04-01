@@ -1,0 +1,24 @@
+name: Update Cookies
+
+on:
+  workflow_dispatch:
+    inputs:
+      xsrf_token:
+        description: 'XSRF-TOKEN value'
+        required: true
+      ivas_session:
+        description: 'ivas_sms_session value'
+        required: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update secrets via API
+        run: |
+          # Ye GitHub API use karta hai - token chahiye
+          curl -X PUT \
+            -H "Authorization: token ${{ secrets.GH_PAT }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/actions/secrets/XSRF_TOKEN \
+            -d '{"encrypted_value":"'${{ inputs.xsrf_token }}'","key_id":"${{ secrets.GH_KEY_ID }}"}'

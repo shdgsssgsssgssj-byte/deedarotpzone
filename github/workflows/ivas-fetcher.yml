@@ -1,0 +1,48 @@
+name: IVAS SMS Fetcher
+
+on:
+  schedule:
+    # Har 30 minute me run - aap timing change kar sakte ho
+    - cron: '*/30 * * * *'
+  # Manual run ke liye
+  workflow_dispatch:
+    inputs:
+      force_update:
+        description: 'Force update cookies'
+        required: false
+        default: 'false'
+
+jobs:
+  fetch-data:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install dependencies
+        run: npm install
+      
+      - name: Update cookies from secrets
+        run: |
+          # Cookies ko iva.js me update karo
+          sed -i "s|XSRF-TOKEN\": \"[^\"]*\"|XSRF-TOKEN\": \"${{ secrets.XSRF_TOKEN }}\"|" iva.js
+          sed -i "s|ivas_sms_session\": \"[^\"]*\"|ivas_sms_session\": \"${{ secrets.IVAS_SESSION }}\"|" iva.js
+      
+      - name: Run fetcher
+        run: node index.js
+      
+      - name: Upload output
+        uses: actions/upload-artifact@v3
+        with:
+          name: ivas-data
+          path: output.json
+          retention-days: 7
+      
+      - name: Log completion
+        run: echo "✅ Job completed at $(date)"

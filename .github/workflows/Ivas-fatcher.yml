@@ -1,30 +1,64 @@
-name: IVAS SMS Fetcher
+name: IVAS Data Fetcher
 
 on:
   schedule:
-    - cron: '*/30 * * * *'
-  workflow_dispatch:
+    # Run every 6 hours
+    - cron: '0 */6 * * *'
+  workflow_dispatch:  # Manual trigger from GitHub UI
+    inputs:
+      force_fetch:
+        description: 'Force fetch data'
+        required: false
+        default: 'false'
 
 jobs:
-  fetch-data:
+  fetch-ivas-data:
     runs-on: ubuntu-latest
     
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
       
-      - uses: actions/setup-node@v3
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
           node-version: '18'
+          cache: 'npm'
       
       - name: Install dependencies
-        run: npm install express
+        run: |
+          echo "No dependencies to install"
+          # npm ci if you have dependencies
+      
+      - name: Create directories
+        run: |
+          mkdir -p data
+          mkdir -p logs
+          mkdir -p data/backup
       
       - name: Run IVAS fetcher
+        env:
+          IVAS_COOKIES: ${{ secrets.IVAS_COOKIES }}
         run: node index.js
       
       - name: Upload data
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v3
+        if: always()
         with:
           name: ivas-data
-          path: output.json
+          path: |
+            data/
+            logs/
           retention-days: 7
+      
+      - name: Upload to GitHub Pages (Optional)
+        if: success()
+        run: |
+          # Configure git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # Commit and push data
+          git add data/
+          git commit -m "Update IVAS data - $(date -u +'%Y-%m-%d %H:%M:%S')" || echo "No changes to commit"
+          git push || echo "Push failed"

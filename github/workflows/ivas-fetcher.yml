@@ -23,7 +23,8 @@ jobs:
         run: node index.js
       
       - name: Upload data
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ivas-data
           path: output.json
+          retention-days: 7
